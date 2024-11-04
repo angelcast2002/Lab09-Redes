@@ -1,25 +1,17 @@
 import random
-import json
 from kafka import KafkaProducer
 import time
+from codec import encode_data
 
 def generarTemperatura():
-  return round(random.uniform(0, 110), 2)
+    return random.uniform(0, 110)
 
 def generarHumedad():
-  return random.randint(0, 100)
+    return random.randint(0, 100)
 
 def generarDireccionViento():
-  direcciones = ["N", "NO", "O", "SO", "S", "SE", "E", "NE"]
-  return random.choice(direcciones)
-
-def generarMensaje():
-  datos = {
-    "temperatura": generarTemperatura(),
-    "humedad": generarHumedad(),
-    "direccionViento": generarDireccionViento()
-  }
-  return json.dumps(datos)
+    direcciones = ["N", "NE", "E", "SE", "S", "SO", "O", "NO"]
+    return random.choice(direcciones)
 
 # Configuraciones para el servidor
 KAFKA_SERVER = 'lab9.alumchat.lol:9092'
@@ -27,24 +19,28 @@ TOPIC = '21700'
 
 # Inicializar el Kafka Producer
 producer = KafkaProducer(
-  bootstrap_servers=KAFKA_SERVER,
-  value_serializer=lambda v: json.dumps(v).encode('utf-8')
+    bootstrap_servers=KAFKA_SERVER
 )
 
 def enviarDatos():
-  try:
-    while True:
-      # Generar el mensaje
-      mensaje = json.loads(generarMensaje())
-      
-      # Enviar los datos al topic
-      producer.send(TOPIC, value=mensaje)
-      print(f"Datos enviados: {mensaje}")
-      
-      # Hacer un sleep de 15 a 30 segundos
-      tiempoEspera = random.uniform(15, 30)
-      time.sleep(tiempoEspera)
-  except KeyboardInterrupt:
-    print("Envío de datos interrumpido manualmente.")
-    
+    try:
+        while True:
+            # Generar los datos
+            temperatura = generarTemperatura()
+            humedad = generarHumedad()
+            direccion_viento = generarDireccionViento()
+
+            # Codificar los datos
+            encoded_payload = encode_data(temperatura, humedad, direccion_viento)
+
+            # Enviar los datos codificados al topic
+            producer.send(TOPIC, value=encoded_payload)
+            print(f"Datos enviados: temperatura={temperatura}, humedad={humedad}, direccion_viento={direccion_viento}")
+
+            # Esperar entre 15 y 30 segundos
+            tiempoEspera = random.uniform(5, 10)
+            time.sleep(tiempoEspera)
+    except KeyboardInterrupt:
+        print("Envío de datos interrumpido manualmente.")
+
 enviarDatos()
